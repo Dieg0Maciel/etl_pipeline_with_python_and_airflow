@@ -329,9 +329,10 @@ VALUES
 [Table of Contents]()
 
 
-## References
+## Resources
 
-* A ![beginner Airflow tutorial](https://www.youtube.com/watch?v=K9AnJ9_ZAXE)
+* ![Beginner Airflow Tutorial](https://www.youtube.com/watch?v=K9AnJ9_ZAXE)
+* ![OpenWeather API Tutorial in Python](https://www.youtube.com/watch?v=9P5MY_2i7K8)
 
 [Table of Contents]()
 
