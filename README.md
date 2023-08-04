@@ -6,7 +6,7 @@
 * [Airflow Connection To PostgresQL](#airflow-connection-to-postgresql)
 * [Openweathermap API](#openweathermap-api)
 * [Airflow DAGs](#airflow-dags)
-* [References](#references)
+* [Resources](#resources)
 
 ## Overview
 In this porject we are going to buil an ETL (*extract, transform and load*) pipeline on premise using free open software.
