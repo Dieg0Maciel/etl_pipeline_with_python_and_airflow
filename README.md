@@ -5,7 +5,7 @@
 * [Configure Docker-Compose](#configure-docker-compose)
 * [Airflow Connection To PostgresQL](#airflow-connection-to-postgresql)
 * [Openweathermap API](#openweathermap-api)
-* [Airflow DAGs](#airflow-dags)
+* [Airflow DAG](#airflow-dag)
 * [Resources](#resources)
 
 ## Overview
