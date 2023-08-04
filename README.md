@@ -330,7 +330,7 @@ VALUES
 
 
 ## Resources
-
+These are links to some useful learning resources:
 * ![Beginner Airflow Tutorial](https://www.youtube.com/watch?v=K9AnJ9_ZAXE)
 * ![OpenWeather API Tutorial in Python](https://www.youtube.com/watch?v=9P5MY_2i7K8)
 
