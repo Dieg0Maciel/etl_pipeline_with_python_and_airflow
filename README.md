@@ -9,7 +9,7 @@
 * [Resources](#resources)
 
 ## Overview
-In this project we are going to build an ETL (*extract, transform and load*) pipeline on premise with Airflow running in a Docker container. We extract data using the API provided by [https://openweathermap.org/](https://openweathermap.org/), transform it with Python and load it to a PostgresQL database, each task is organized and automated by an Airflow DAG.
+In this project we are going to build an ETL pipeline (*extract, transform and load*) on premise with Airflow running in a Docker container, where each task is organized and automated by an Airflow DAG. Data extraction is performed using the API provided by [https://openweathermap.org/](https://openweathermap.org/). This data will be transformed with Python and loaded to a PostgresQL database.
 
 ### Architecture Diagram
 ![](/images/pipeline.png)
