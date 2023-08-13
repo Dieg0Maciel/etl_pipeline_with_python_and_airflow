@@ -10,7 +10,6 @@ from airflow.operators.python_operator import PythonOperator
 
 
 default_args = {
-    'owner': 'coder2j',
     'retries': 0,
     'retry_delay': timedelta(minutes=5)
 }
