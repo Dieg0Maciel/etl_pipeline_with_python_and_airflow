@@ -24,7 +24,7 @@ def create_table():
     
     
 def openweathermap_data():
-    API_key = "217af0bd393daed4324dd4cc05636799"
+    API_key = "API_key goes here"
     city_name = "Rio de Janeiro"
 
     url = f"http://api.openweathermap.org/data/2.5/forecast?q={city_name}&appid={API_key}"
