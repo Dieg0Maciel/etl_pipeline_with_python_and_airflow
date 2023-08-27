@@ -6,12 +6,6 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python_operator import PythonOperator 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-
-def test_conn_function():
-    pg_hook = PostgresHook(postgres_conn_id="airflow-postgres")
-    records = pg_hook.get_records("SELECT * FROM hourly_forecast")
-    print(records)
-
     
 def create_table():
     request = """
