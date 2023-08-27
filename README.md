@@ -5,11 +5,11 @@
 * [Configure Docker-Compose](#configure-docker-compose)
 * [Airflow Connection To PostgresQL](#airflow-connection-to-postgresql)
 * [Openweathermap API](#openweathermap-api)
-* [Airflow DAG](#airflow-dag)
+* [Airflow DAGs](#airflow-dags)
 * [Resources](#resources)
 
 ## Overview
-In this project we are going to build an ETL pipeline (*extract, transform and load*) on premise with Airflow running in a Docker container, where each task is organized and automated by an Airflow DAG. Data extraction is performed using the API provided by [https://openweathermap.org/](https://openweathermap.org/). This data will be transformed with Python and loaded to a PostgresQL database.
+In this project we are going to build an ETL pipeline (*extract, transform and load*) on premise with Airflow running in a Docker container, where each task is organized and automated by Airflow DAGs. Data extraction is performed using the API provided by [https://openweathermap.org/](https://openweathermap.org/). This data will be transformed with Python and loaded to a PostgresQL database.
 
 ### Architecture Diagram
 ![](/images/pipeline.png)
@@ -231,9 +231,10 @@ wind_speed = api_response["list"][0]["wind"]["speed"]
 
 [Table of Contents]()
 
-## Airflow DAG
+## Airflow DAGs
+### DAG: 'dag_hourly_forecast'
 
-The ETL pipeline consist in a simple airflow DAG with an hourly schedule interval given by the [cron expression](https://crontab.cronhub.io/) ``'0 * * * *'`` . This DAG contains 3 tasks in a downstream:
+This is a DAG with an hourly schedule interval given by the [cron expression](https://crontab.cronhub.io/) ``'0 * * * *'`` . This DAG contains 2 tasks in a downstream:
 
 ```
 with DAG(
@@ -241,54 +242,39 @@ with DAG(
     default_args=default_args,
     start_date=datetime(2023, 8, 2),
     schedule_interval='0 * * * *',
-    max_active_tasks=1,
-    catchup=False,
-    template_searchpath='/opt/airflow/sql'
+    catchup=False
 ) as dag:
-    task1 = PostgresOperator(task_id='create_postgres_table', ... )
-    task2 = PythonOperator(task_id='run_etl', ...)
-    task3 = PostgresOperator(task_id='insert_record', ...)
+    task_create = PythonOperator(task_id='create_table', ...)
+    task_openweather_ = PythonOperator(task_id='openweather_record', ...)
 ```
 
-![](/images/dag.png)
+![](/images/dag_hourly_forecast.png)
 
-### Task1 - Create Postgres Table
-Using *PostgresOperator* the first task creates the *hourly_forecast* table inside the *openweathermap* dataset runing the sql code in ``/sql/create_postgres_table.sql``
+#### First task: 'create_table'
+Using *PostgresOperator* the first task creates the *hourly_forecast* table inside the *openweathermap* dataset, the execultable ``create _table`` runs sql code with a postgres hook
 ```
-task1 = PostgresOperator(
-    task_id='create_postgres_table',
-    postgres_conn_id='airflow-postgres',
-    sql='create_postgres_table.sql'
-)
-```
-
-#### create_postgres_table.sql
-The sql file ``create_postgres_table.sql`` located in the directory ``/sql`` consist in
-```
-CREATE TABLE IF NOT EXISTS hourly_forecast(
-    request_time  VARCHAR(50),
-    forecast_time  VARCHAR(25),
-    description  VARCHAR(100),
-    temperature  FLOAT(8),
-    pressure  INT,
-    humidity  INT,
-    wind_speed  FLOAT(8)
-) 
+def create_table():
+    request = """
+        CREATE TABLE IF NOT EXISTS hourly_forecast(
+            request_time  VARCHAR(50),
+            forecast_time  VARCHAR(25),
+            description  VARCHAR(100),
+            temperature  NUMERIC,
+            pressure  INT,
+            humidity  INT,
+            wind_speed  NUMERIC
+        ) 
+    """
+    pg_hook = PostgresHook(postgres_conn_id="airflow-postgres")
+    pg_hook.run(request)
 ```
 
-### Task2 - Run ETL
-The Extraction, Transformation and part of the Laoding process is performed in the second task using *PythonOperator* which call the *run_etl* function defined in the file ``etl_file.py``
-```
-task2 = PythonOperator(
-    task_id='run_etl',
-    python_callable=run_etl
-)
-```
+#### Second task: 'openweather_record'
+Using *PostgresOperator* the execultable ``openweathermap_data`` performs an API request to [OpenWeather](https://openweathermap.org/) and
+runs sql code to insert the data as a record in a table with a postgres hook
 
-#### etl_file.py
-The data **extraction** is performed with the API request to [OpenWeather](https://openweathermap.org/) and **transformed** afterward with Python in a format suitable to be **loaded** into *xcoms* with the ``ti.xcom_push`` method
 ```
-def run_etl(ti):
+def openweathermap_data():
     API_key = "API_key goes here"
     city_name = "Rio de Janeiro"
 
@@ -302,29 +288,16 @@ def run_etl(ti):
     pressure = api_response["list"][0]["main"]["pressure"]
     humidity = api_response["list"][0]["main"]["humidity"]
     wind_speed = api_response["list"][0]["wind"]["speed"]
+    print([request_time, forecast_time, description, temperature, pressure, humidity, wind_speed])
 
-    ti.xcom_push(key='request_time', value=f"{request_time}")
-    ti.xcom_push(key='forecast_time', value=forecast_time)
-    ti.xcom_push(key='description', value=description)
-    ti.xcom_push(key='temperature', value=temperature)
-    ti.xcom_push(key='pressure', value=pressure)
-    ti.xcom_push(key='humidity', value=humidity)
-    ti.xcom_push(key='wind_speed', value=wind_speed)
+    sql_request = f"""
+        INSERT INTO hourly_forecast
+        VALUES ('{request_time}', '{forecast_time}', '{description}', '{temperature}', '{pressure}', '{humidity}', '{wind_speed}'); 
+    """
+    pg_hook = PostgresHook(postgres_conn_id="airflow-postgres")
+    pg_hook.run(sql_request)
 ```
 
-### Task3 - Insert Record
-Using the method ``ti.xcom_pull`` to pull data from *xcoms*, the third task completes the **loading** process by inserting the data into the *openweathermap* dataset as a new record for the *hourly_forecast* table 
-
-```
-task3 = PostgresOperator(
-        task_id='insert_record',
-        postgres_conn_id='airflow-postgres',
-        sql="""INSERT INTO hourly_forecast 
-VALUES 
-    ('{{ti.xcom_pull(task_ids="run_etl", key="request_time")}}', '{{ti.xcom_pull(task_ids="run_etl", key="forecast_time")}}', '{{ti.xcom_pull(task_ids="run_etl", key="description")}}', '{{ti.xcom_pull(task_ids="run_etl", key="temperature")}}', '{{ti.xcom_pull(task_ids="run_etl", key="pressure")}}', '{{ti.xcom_pull(task_ids="run_etl", key="humidity")}}', '{{ti.xcom_pull(task_ids="run_etl", key="wind_speed")}}')
-""" 
-    )
-```
 
 [Table of Contents]()
 
